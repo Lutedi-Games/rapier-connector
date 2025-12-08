@@ -7,15 +7,18 @@ export type TPhysicsObject = {
 };
 type TRapierOptions = {
     /** The type of rigidbody (Dynamic, Fixed, KinematicPositionBased, KinematicVelocityBased) */
-    rigidBodyType: RAPIER.RigidBodyType;
+    rigidBodyType?: RAPIER.RigidBodyType;
+    /** The rigid body description, if you want to customize more properties of the rigid body */
+    rigidBodyDesc?: RAPIER.RigidBodyDesc;
     /**
      * The collider shape, if you pass RAPIER.ColliderDesc.[ball | capsule | cuboid | ...] you need pass the shape size example: RAPIER.ColliderDesc.ball(1.5)
      * - If you don't pass a collider, a cuboid will be created with the dimensions of the game object.
      * - If you pass the type enum RAPIER.ShapeType, the size is created with the dimensions of the object.
      */
     collider: RAPIER.ColliderDesc;
-    /** If you pass some KinematicPositionBased then you can use Phaser's transformations. NOTE: Phaser transformations are only available for KinematicPositionBased rigid bodies. Scale is not supported please do it manually  */
-    phaserTransformations?: boolean;
+    /** Translation and rotation to spawn at. Can also be set on the collider. */
+    translation?: RAPIER.Vector3;
+    rotation?: RAPIER.Rotation;
 };
 export type RapierPhysics = {
     getWorld: () => RAPIER.World;
@@ -38,5 +41,9 @@ export declare const createRapierPhysics: (gravity: {
     x: number;
     y: number;
     z: number;
-}, scene: Scene) => RapierPhysics;
+}, scene: Scene, debugRenderSettings?: {
+    xScale?: number;
+    yScale?: number;
+    zScale?: number;
+}) => RapierPhysics;
 export { RAPIER };

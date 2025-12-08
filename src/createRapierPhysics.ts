@@ -4,7 +4,7 @@ import { type GameObjects, type Scene } from "phaser";
 type TAddRigidBodyConfig = {
     world: RAPIER.World;
     gameObject: GameObjects.GameObject;
-    rigidBodyType: RAPIER.RigidBodyType;
+    rigidBodyDesc: RAPIER.RigidBodyType | RAPIER.RigidBodyDesc;
     colliderDesc: RAPIER.ColliderDesc;
 };
 
@@ -23,36 +23,36 @@ export type TPhysicsObject = {
 const addRigidBody = ({
     world,
     gameObject,
-    rigidBodyType,
+    rigidBodyDesc,
     colliderDesc,
 }: TAddRigidBodyConfig): TRidgiBodyObject => {
     // Select the rigid body type
-    let rigidBodyDesc: RAPIER.RigidBodyDesc;
-    if (rigidBodyType !== undefined) {
-        switch (rigidBodyType) {
+    let _rigidBodyDesc: RAPIER.RigidBodyDesc;
+    if (typeof rigidBodyDesc === "number") {
+        switch (rigidBodyDesc) {
             case RAPIER.RigidBodyType.Dynamic:
-                rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic();
+                _rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic();
                 break;
             case RAPIER.RigidBodyType.Fixed:
-                rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+                _rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
                 break;
             case RAPIER.RigidBodyType.KinematicPositionBased:
-                rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased();
+                _rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased();
                 break;
             case RAPIER.RigidBodyType.KinematicVelocityBased:
-                rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicVelocityBased();
+                _rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicVelocityBased();
                 break;
             default:
-                rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic();
+                _rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic();
                 break;
         }
     } else {
-        rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic();
+        _rigidBodyDesc = rigidBodyDesc;
     }
 
-    rigidBodyDesc.setUserData(gameObject);
+    _rigidBodyDesc.setUserData(gameObject);
 
-    const rigidBody = world.createRigidBody(rigidBodyDesc);
+    const rigidBody = world.createRigidBody(_rigidBodyDesc);
     const collider = world.createCollider(colliderDesc, rigidBody);
 
     // set userData
@@ -65,15 +65,18 @@ const addRigidBody = ({
 
 type TRapierOptions = {
     /** The type of rigidbody (Dynamic, Fixed, KinematicPositionBased, KinematicVelocityBased) */
-    rigidBodyType: RAPIER.RigidBodyType;
+    rigidBodyType?: RAPIER.RigidBodyType;
+    /** The rigid body description, if you want to customize more properties of the rigid body */
+    rigidBodyDesc?: RAPIER.RigidBodyDesc;
     /**
      * The collider shape, if you pass RAPIER.ColliderDesc.[ball | capsule | cuboid | ...] you need pass the shape size example: RAPIER.ColliderDesc.ball(1.5)
      * - If you don't pass a collider, a cuboid will be created with the dimensions of the game object.
      * - If you pass the type enum RAPIER.ShapeType, the size is created with the dimensions of the object.
      */
     collider: RAPIER.ColliderDesc;
-    /** If you pass some KinematicPositionBased then you can use Phaser's transformations. NOTE: Phaser transformations are only available for KinematicPositionBased rigid bodies. Scale is not supported please do it manually  */
-    phaserTransformations?: boolean;
+    /** Translation and rotation to spawn at. Can also be set on the collider. */
+    translation?: RAPIER.Vector3;
+    rotation?: RAPIER.Rotation;
 };
 
 export type RapierPhysics = {
@@ -100,6 +103,11 @@ export type RapierPhysics = {
 export const createRapierPhysics = (
     gravity: { x: number; y: number; z: number },
     scene: Scene,
+    debugRenderSettings?: {
+        xScale?: number;
+        yScale?: number;
+        zScale?: number;
+    },
 ): RapierPhysics => {
     let debugEnabled = false;
     let eventQueue: RAPIER.EventQueue | undefined;
@@ -134,9 +142,9 @@ export const createRapierPhysics = (
             for (let i = 0; i < vertices.length; i += 6) {
                 const x1 = vertices[i];
                 const y1 = vertices[i + 1];
-                const x2 = vertices[i + 2];
-                const y2 = vertices[i + 3];
-                const z1 = vertices[i + 4];
+                const z1 = vertices[i + 2];
+                const x2 = vertices[i + 3];
+                const y2 = vertices[i + 4];
                 const z2 = vertices[i + 5];
 
                 const colorIndex = i * 2;
@@ -151,7 +159,15 @@ export const createRapierPhysics = (
                     a,
                 );
 
-                debugGraphics.lineBetween(x1, y1, x2, y2);
+                const xScale = debugRenderSettings?.xScale ?? 1;
+                const yScale = debugRenderSettings?.yScale ?? 1;
+                const zScale = debugRenderSettings?.zScale ?? 1;
+                debugGraphics.lineBetween(
+                    x1 * xScale,
+                    (y1 * yScale) - (zScale * z1),
+                    x2 * xScale,
+                    (y2 * yScale) - (zScale * z2),
+                );
             }
         }
     };
@@ -178,9 +194,20 @@ export const createRapierPhysics = (
             const _body = addRigidBody({
                 world,
                 gameObject,
-                rigidBodyType: rapierOptions?.rigidBodyType,
+                rigidBodyDesc: rapierOptions?.rigidBodyType ||
+                    rapierOptions?.rigidBodyDesc ||
+                    RAPIER.RigidBodyType.Dynamic,
                 colliderDesc: rapierOptions?.collider,
             });
+            if (rapierOptions.translation) {
+                _body.rigidBody.setTranslation(
+                    rapierOptions.translation,
+                    false,
+                );
+            }
+            if (rapierOptions.rotation) {
+                _body.rigidBody.setRotation(rapierOptions.rotation, false);
+            }
             bodies.unshift(_body);
             return {
                 collider: _body.collider,

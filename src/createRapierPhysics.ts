@@ -76,6 +76,21 @@ type TRapierOptions = {
     phaserTransformations?: boolean;
 };
 
+export type RapierPhysics = {
+    getWorld: () => RAPIER.World;
+    addRigidBody: (
+        gameObject: Phaser.GameObjects.GameObject,
+        rapierOptions: TRapierOptions,
+    ) => TPhysicsObject;
+    debugger: (enable?: boolean) => void;
+    destroy: (gameObject: Phaser.GameObjects.GameObject) => void;
+    createEventQueue: () => {
+        eventQueue: RAPIER.EventQueue;
+        free: () => void;
+    };
+    free: () => void;
+};
+
 /**
  * Creates a Rapier world and manages its update loop within a Phaser scene.
  * @param {{ x: number, y: number }} gravity - The gravity vector for the Rapier world.
@@ -85,7 +100,7 @@ type TRapierOptions = {
 export const createRapierPhysics = (
     gravity: { x: number; y: number; z: number },
     scene: Scene,
-) => {
+): RapierPhysics => {
     let debugEnabled = false;
     let eventQueue: RAPIER.EventQueue | undefined;
 

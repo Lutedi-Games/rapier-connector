@@ -42,6 +42,7 @@ export declare const createRapierPhysics: (gravity: {
     y: number;
     z: number;
 }, scene: Scene, debugRenderSettings?: {
+    xShear?: number;
     xScale?: number;
     yScale?: number;
     zScale?: number;

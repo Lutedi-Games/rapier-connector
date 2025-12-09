@@ -104,6 +104,7 @@ export const createRapierPhysics = (
     gravity: { x: number; y: number; z: number },
     scene: Scene,
     debugRenderSettings?: {
+        xShear?: number;
         xScale?: number;
         yScale?: number;
         zScale?: number;
@@ -159,14 +160,16 @@ export const createRapierPhysics = (
                     a,
                 );
 
+                const xShear = debugRenderSettings?.xShear ?? 0;
+
                 const xScale = debugRenderSettings?.xScale ?? 1;
                 const yScale = debugRenderSettings?.yScale ?? 1;
                 const zScale = debugRenderSettings?.zScale ?? 1;
                 debugGraphics.lineBetween(
-                    x1 * xScale,
-                    (y1 * yScale) - (zScale * z1),
-                    x2 * xScale,
-                    (y2 * yScale) - (zScale * z2),
+                    (x1 * xScale) + (y1 * xShear),
+                    (y1 * yScale) - (x1 * xShear) - (zScale * z1),
+                    (x2 * xScale) + (y2 * xShear),
+                    (y2 * yScale) - (x2 * xShear) - (zScale * z2),
                 );
             }
         }

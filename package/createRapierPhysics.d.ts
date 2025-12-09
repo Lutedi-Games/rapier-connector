@@ -5,6 +5,10 @@ export type TPhysicsObject = {
     collider: RAPIER.Collider;
     gameObject: GameObjects.GameObject;
 };
+export type UserData = {
+    gameObject: Phaser.GameObjects.GameObject;
+    setPosition: boolean;
+};
 type TRapierOptions = {
     /** The type of rigidbody (Dynamic, Fixed, KinematicPositionBased, KinematicVelocityBased) */
     rigidBodyType?: RAPIER.RigidBodyType;

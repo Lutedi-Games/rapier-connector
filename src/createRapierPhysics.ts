@@ -6,6 +6,7 @@ type TAddRigidBodyConfig = {
     gameObject: GameObjects.GameObject;
     rigidBodyDesc: RAPIER.RigidBodyType | RAPIER.RigidBodyDesc;
     colliderDesc: RAPIER.ColliderDesc;
+    setPosition?: boolean;
 };
 
 type TRidgiBodyObject = {
@@ -20,11 +21,17 @@ export type TPhysicsObject = {
     gameObject: GameObjects.GameObject;
 };
 
+export type UserData = {
+    gameObject: Phaser.GameObjects.GameObject;
+    setPosition: boolean;
+};
+
 const addRigidBody = ({
     world,
     gameObject,
     rigidBodyDesc,
     colliderDesc,
+    setPosition,
 }: TAddRigidBodyConfig): TRidgiBodyObject => {
     // Select the rigid body type
     let _rigidBodyDesc: RAPIER.RigidBodyDesc;
@@ -50,7 +57,10 @@ const addRigidBody = ({
         _rigidBodyDesc = rigidBodyDesc;
     }
 
-    _rigidBodyDesc.setUserData(gameObject);
+    _rigidBodyDesc.setUserData({
+        gameObject,
+        setPosition: setPosition ?? ("setPosition" in gameObject),
+    });
 
     const rigidBody = world.createRigidBody(_rigidBodyDesc);
     const collider = world.createCollider(colliderDesc, rigidBody);
@@ -148,6 +158,17 @@ export const createRapierPhysics = (
         } else {
             world.step();
         }
+
+        world.bodies.forEach((body) => {
+            const userData = body.userData as UserData;
+            if (userData?.setPosition) {
+                const gameObject = userData.gameObject;
+                const position = body.translation();
+
+                const { x, y } = translationToPhaser(position);
+                (gameObject as any).setPosition(x, y);
+            }
+        });
 
         if (debugEnabled) {
             debugGraphics.clear();

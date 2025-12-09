@@ -1,4 +1,4 @@
-import RAPIER from "@dimforge/rapier3d-compat";
+import RAPIER, { Vector3 } from "@dimforge/rapier3d-compat";
 import { type GameObjects, type Scene } from "phaser";
 
 type TAddRigidBodyConfig = {
@@ -55,6 +55,9 @@ const addRigidBody = ({
     const rigidBody = world.createRigidBody(_rigidBodyDesc);
     const collider = world.createCollider(colliderDesc, rigidBody);
 
+    gameObject.setData("rigidBody", rigidBody);
+    gameObject.setData("collider", collider);
+
     // set userData
     return {
         rigidBody,
@@ -85,6 +88,8 @@ export type RapierPhysics = {
         gameObject: Phaser.GameObjects.GameObject,
         rapierOptions: TRapierOptions,
     ) => TPhysicsObject;
+    getBodyPosition: (body: RAPIER.RigidBody) => { x: number; y: number };
+    getVectorPosition: (vector: RAPIER.Vector3) => { x: number; y: number };
     debugger: (enable?: boolean) => void;
     destroy: (gameObject: Phaser.GameObjects.GameObject) => void;
     createEventQueue: () => {
@@ -123,6 +128,17 @@ export const createRapierPhysics = (
         gameObject: Phaser.GameObjects.GameObject;
     }> = [];
 
+    const translationToPhaser = (vector: Vector3): { x: number; y: number } => {
+        const xShear = debugRenderSettings?.xShear ?? 0;
+        const xScale = debugRenderSettings?.xScale ?? 1;
+        const yScale = debugRenderSettings?.yScale ?? 1;
+        const zScale = debugRenderSettings?.zScale ?? 1;
+        return {
+            x: (vector.x * xScale) + (vector.y * xShear),
+            y: (vector.y * yScale) - (vector.x * xShear) - (zScale * vector.z),
+        };
+    };
+
     const update = () => {
         if (eventQueue !== undefined) {
             world.step(eventQueue);
@@ -160,17 +176,13 @@ export const createRapierPhysics = (
                     a,
                 );
 
-                const xShear = debugRenderSettings?.xShear ?? 0;
-
-                const xScale = debugRenderSettings?.xScale ?? 1;
-                const yScale = debugRenderSettings?.yScale ?? 1;
-                const zScale = debugRenderSettings?.zScale ?? 1;
-                debugGraphics.lineBetween(
-                    (x1 * xScale) + (y1 * xShear),
-                    (y1 * yScale) - (x1 * xShear) - (zScale * z1),
-                    (x2 * xScale) + (y2 * xShear),
-                    (y2 * yScale) - (x2 * xShear) - (zScale * z2),
+                const { x: px1, y: py1 } = translationToPhaser(
+                    new Vector3(x1, y1, z1),
                 );
+                const { x: px2, y: py2 } = translationToPhaser(
+                    new Vector3(x2, y2, z2),
+                );
+                debugGraphics.lineBetween(px1, py1, px2, py2);
             }
         }
     };
@@ -227,6 +239,30 @@ export const createRapierPhysics = (
             if (!enable) {
                 debugGraphics.clear();
             }
+        },
+
+        /**
+         * Returns the on-screen location of a rigid body.
+         */
+        getBodyPosition: (
+            body: RAPIER.RigidBody | Phaser.GameObjects.GameObject,
+        ): { x: number; y: number } => {
+            if (body instanceof Phaser.GameObjects.GameObject) {
+                const rb = body.getData("rigidBody") as RAPIER.RigidBody;
+                const position = rb.translation();
+                return translationToPhaser(position);
+            }
+            const position = body.translation();
+            return translationToPhaser(position);
+        },
+
+        /**
+         * Returns the on-screen location of a vector.
+         */
+        getVectorPosition: (
+            vector: RAPIER.Vector3,
+        ): { x: number; y: number } => {
+            return translationToPhaser(vector);
         },
 
         /**

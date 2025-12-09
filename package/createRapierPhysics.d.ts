@@ -23,6 +23,14 @@ type TRapierOptions = {
 export type RapierPhysics = {
     getWorld: () => RAPIER.World;
     addRigidBody: (gameObject: Phaser.GameObjects.GameObject, rapierOptions: TRapierOptions) => TPhysicsObject;
+    getBodyPosition: (body: RAPIER.RigidBody) => {
+        x: number;
+        y: number;
+    };
+    getVectorPosition: (vector: RAPIER.Vector3) => {
+        x: number;
+        y: number;
+    };
     debugger: (enable?: boolean) => void;
     destroy: (gameObject: Phaser.GameObjects.GameObject) => void;
     createEventQueue: () => {
